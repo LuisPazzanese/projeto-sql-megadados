@@ -12,6 +12,8 @@ engine = create_engine(
     settings.database_url,
     echo=settings.sql_echo,
     pool_pre_ping=True,  # descarta conexões derrubadas pelo MySQL (wait_timeout)
+    # NOW() em UTC independente do fuso do servidor: criado_em/atualizado_em ficam em UTC.
+    connect_args={"init_command": "SET time_zone = '+00:00'"},
 )
 
 
