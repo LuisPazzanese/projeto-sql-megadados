@@ -99,7 +99,7 @@ def listar_livros_do_autor(
         .offset(paginacao.offset)
         .limit(paginacao.limit)
     )
-    return [LivroPublic.model_validate(l) for l in session.exec(consulta)]
+    return [LivroPublic.model_validate(livro) for livro in session.exec(consulta)]
 
 
 @router.put(

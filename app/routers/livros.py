@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Path, Query, Request, Response, status
-from sqlmodel import col, select
+from sqlmodel import Session, col, select
 
 from app.core.database import SessionDep
 from app.models.livro import (
@@ -26,10 +26,10 @@ router = APIRouter(prefix="/livros", tags=["Livros"])
 LivroId = Annotated[int, Path(ge=1, description="ID do livro.", examples=[1])]
 
 NAO_ENCONTRADO = {404: resposta_erro("Livro não encontrado.")}
-ERROS_ESCRITA = {
-    409: resposta_erro("Já existe um livro com esse ISBN."),
-    422: resposta_erro("Dados inválidos ou autor inexistente."),
-}
+# 422 fica com o schema padrão do FastAPI (erros de validação); o caso de
+# autor inexistente, que também responde 422, é citado na descrição das rotas.
+CONFLITO_ISBN = {409: resposta_erro("Já existe um livro com esse ISBN.")}
+AUTOR_INEXISTENTE = "Se `autor_id` não existir, responde 422."
 # Tradução das violações de integridade do MySQL ao gravar um livro
 ERROS_MYSQL = {
     MYSQL_DUPLICADO: (status.HTTP_409_CONFLICT, "Já existe um livro com esse ISBN"),
@@ -40,7 +40,7 @@ ERROS_MYSQL = {
 }
 
 
-def _salvar(session: SessionDep, livro: Livro) -> LivroPublic:
+def _salvar(session: Session, livro: Livro) -> LivroPublic:
     session.add(livro)
     commit_ou_erro(session, ERROS_MYSQL)
     session.refresh(livro)
@@ -52,11 +52,11 @@ def _salvar(session: SessionDep, livro: Livro) -> LivroPublic:
     status_code=status.HTTP_201_CREATED,
     summary="Criar livro",
     description=(
-        "Cadastra um livro de um autor existente. O ISBN deve ser único. "
-        "O header `Location` aponta para o recurso criado."
+        "Cadastra um livro de um autor existente. O ISBN deve ser único (409). "
+        f"{AUTOR_INEXISTENTE} O header `Location` aponta para o recurso criado."
     ),
     response_description="Livro criado.",
-    responses=ERROS_ESCRITA,
+    responses=CONFLITO_ISBN,
 )
 def criar_livro(
     dados: LivroCreate, session: SessionDep, request: Request, response: Response
@@ -77,7 +77,11 @@ def listar_livros(
     paginacao: PaginacaoDep,
     titulo: Annotated[
         str | None,
-        Query(min_length=1, description="Filtra livros cujo título contém este texto.", examples=["Casmurro"]),
+        Query(
+            min_length=1,
+            description="Filtra livros cujo título contém este texto.",
+            examples=["Casmurro"],
+        ),
     ] = None,
     autor_id: Annotated[
         int | None, Query(ge=1, description="Filtra pelos livros de um autor.", examples=[1])
@@ -99,7 +103,7 @@ def listar_livros(
     if disponivel is not None:
         consulta = consulta.where(Livro.disponivel == disponivel)
     consulta = consulta.order_by(col(Livro.id)).offset(paginacao.offset).limit(paginacao.limit)
-    return [LivroPublic.model_validate(l) for l in session.exec(consulta)]
+    return [LivroPublic.model_validate(livro) for livro in session.exec(consulta)]
 
 
 @router.get(
@@ -119,10 +123,11 @@ def obter_livro(livro_id: LivroId, session: SessionDep) -> LivroPublicComAutor:
     summary="Substituir livro",
     description=(
         "Substitui **todos** os dados do livro; campos com valor padrão omitidos "
-        "(`genero`, `disponivel`) voltam ao padrão. Para alterar só alguns campos use PATCH."
+        "(`genero`, `disponivel`) voltam ao padrão. Para alterar só alguns campos use PATCH. "
+        f"{AUTOR_INEXISTENTE}"
     ),
     response_description="Livro atualizado.",
-    responses={**NAO_ENCONTRADO, **ERROS_ESCRITA},
+    responses={**NAO_ENCONTRADO, **CONFLITO_ISBN},
 )
 def substituir_livro(livro_id: LivroId, dados: LivroCreate, session: SessionDep) -> LivroPublic:
     livro = obter_ou_404(session, Livro, livro_id, "Livro")
@@ -133,9 +138,12 @@ def substituir_livro(livro_id: LivroId, dados: LivroCreate, session: SessionDep)
 @router.patch(
     "/{livro_id}",
     summary="Alterar livro parcialmente",
-    description="Altera apenas os campos enviados no corpo (ex.: marcar como indisponível).",
+    description=(
+        "Altera apenas os campos enviados no corpo (ex.: marcar como indisponível). "
+        f"{AUTOR_INEXISTENTE}"
+    ),
     response_description="Livro atualizado.",
-    responses={**NAO_ENCONTRADO, **ERROS_ESCRITA},
+    responses={**NAO_ENCONTRADO, **CONFLITO_ISBN},
 )
 def alterar_livro(livro_id: LivroId, dados: LivroUpdate, session: SessionDep) -> LivroPublic:
     livro = obter_ou_404(session, Livro, livro_id, "Livro")

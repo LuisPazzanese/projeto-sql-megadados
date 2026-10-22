@@ -121,10 +121,17 @@ class LivroUpdate(SQLModel):
         schema_extra={"pattern": ISBN13, "examples": ["9788535910667"]},
     )
     ano_publicacao: int | None = Field(
-        default=None, ge=1450, description="Novo ano de publicação.", schema_extra={"examples": [1900]}
+        default=None,
+        ge=1450,
+        description="Novo ano de publicação.",
+        schema_extra={"examples": [1900]},
     )
     paginas: int | None = Field(
-        default=None, ge=1, le=100_000, description="Novo número de páginas.", schema_extra={"examples": [300]}
+        default=None,
+        ge=1,
+        le=100_000,
+        description="Novo número de páginas.",
+        schema_extra={"examples": [300]},
     )
     preco: Decimal | None = Field(
         default=None,
