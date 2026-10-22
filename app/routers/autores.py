@@ -5,6 +5,7 @@ from sqlmodel import col, select
 
 from app.core.database import SessionDep
 from app.models.autor import Autor, AutorCreate, AutorPublic, AutorUpdate
+from app.models.livro import Livro, LivroPublic
 from app.routers.comum import (
     MYSQL_FK_EM_USO,
     PaginacaoDep,
@@ -78,6 +79,27 @@ def listar_autores(
 )
 def obter_autor(autor_id: AutorId, session: SessionDep) -> AutorPublic:
     return AutorPublic.model_validate(obter_ou_404(session, Autor, autor_id, "Autor"))
+
+
+@router.get(
+    "/{autor_id}/livros",
+    summary="Listar livros do autor",
+    description="Sub-recurso: livros de um autor, ordenados por ano de publicação.",
+    response_description="Página de livros do autor.",
+    responses=NAO_ENCONTRADO,
+)
+def listar_livros_do_autor(
+    autor_id: AutorId, session: SessionDep, paginacao: PaginacaoDep
+) -> list[LivroPublic]:
+    obter_ou_404(session, Autor, autor_id, "Autor")
+    consulta = (
+        select(Livro)
+        .where(Livro.autor_id == autor_id)
+        .order_by(col(Livro.ano_publicacao), col(Livro.id))
+        .offset(paginacao.offset)
+        .limit(paginacao.limit)
+    )
+    return [LivroPublic.model_validate(l) for l in session.exec(consulta)]
 
 
 @router.put(

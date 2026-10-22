@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel, Field
 
 from app.core.database import create_db_and_tables
-from app.routers import autores
+from app.routers import autores, livros
 
 
 @asynccontextmanager
@@ -42,6 +42,7 @@ app = FastAPI(
 )
 
 app.include_router(autores.router)
+app.include_router(livros.router)
 
 
 @app.middleware("http")
@@ -76,5 +77,5 @@ def indice() -> Indice:
     return Indice(
         mensagem="Bem-vindo à API Biblioteca!",
         documentacao="/docs",
-        recursos={"autores": "/autores"},
+        recursos={"autores": "/autores", "livros": "/livros"},
     )

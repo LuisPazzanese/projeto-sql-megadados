@@ -39,10 +39,11 @@ class AutorBase(SQLModel):
 class Autor(AutorBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     criado_em: datetime | None = Field(
-        default=None, sa_column_kwargs={"server_default": func.now()}
+        default=None, nullable=False, sa_column_kwargs={"server_default": func.now()}
     )
     atualizado_em: datetime | None = Field(
         default=None,
+        nullable=False,
         sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
     )
 
