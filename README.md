@@ -3,7 +3,7 @@
 Microsserviço **RESTful** para gerenciar o acervo de uma biblioteca: **autores** e seus **livros**.
 Feito com **FastAPI**, ORM **SQLModel** (sobre SQLAlchemy) e banco **MySQL**.
 
-📹 **Vídeo de demonstração:** _adicione aqui o link do vídeo_
+📹 **Vídeo de demonstração:** [_adicione aqui o link do vídeo_](https://youtu.be/6sJq4Cib0IA)
 
 ## Funcionalidades
 
