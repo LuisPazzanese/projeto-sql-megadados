@@ -84,7 +84,8 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # 3. Banco (opcional, se não tiver MySQL instalado): usa as credenciais do .env
-docker compose up -d
+#    --wait só retorna quando o MySQL está pronto para conexões (~20 s na 1ª vez)
+docker compose up -d --wait
 
 # 4. API (as tabelas são criadas automaticamente na inicialização)
 fastapi dev app/main.py

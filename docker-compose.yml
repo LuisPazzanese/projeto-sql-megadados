@@ -14,7 +14,9 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      # TCP (127.0.0.1), não socket: na 1ª inicialização o MySQL roda um servidor
+      # temporário sem rede; via socket o ping passaria antes de o banco estar pronto.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 5s
       timeout: 5s
       retries: 20
